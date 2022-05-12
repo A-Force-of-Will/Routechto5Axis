@@ -36,9 +36,9 @@ namespace RoutechToFiveAxis
         // A special thanks for the convert Icon by Mohit Gandhi https://iconscout.com/contributors/mcgandhi61
 
         #region Machine & Tool Files
-        //public const string fiveAxisToolOps = "G:\\CAD Support\\CNC\\FiveAxisToolpaths.mcam";
-        //public const string fiveAxisMachine = "S:\\MasterCAM Posts\\MC-2020\\CNC MACHINES\\MPPOSTABILITY_XILOG_PLUS 5AXIS.mcam-rmd";
-        //public const string fiveAxisToolDb = "S:\\MasterCAM Posts\\MC-2020\\TOOL LIBRARIES\\5 AXIS 2018.tooldb";
+        public const string fiveAxisToolOps = "G:\\CAD Support\\CNC\\FiveAxisToolpaths.mcam";
+        public const string fiveAxisMachine = "S:\\MasterCAM Posts\\MC-2020\\CNC MACHINES\\MPPOSTABILITY_XILOG_PLUS 5AXIS.mcam-rmd";
+        public const string fiveAxisToolDb = "S:\\MasterCAM Posts\\MC-2020\\TOOL LIBRARIES\\5 AXIS 2018.tooldb";
 
         /*
          * If you wish to debug, you need to have your tool operations/part/machine
@@ -211,8 +211,8 @@ namespace RoutechToFiveAxis
         private void ChangeMachineAndToolDb()
         {
             //Change machine to 5-axis
-            GroupManager.SetMachineInActiveGroup(fiveAxisMachineT);
-            OperationsManager.ToolLibraryName = fiveAxisToolDbT;
+            GroupManager.SetMachineInActiveGroup(fiveAxisMachine);
+            OperationsManager.ToolLibraryName = fiveAxisToolDb;
 
         }
 
@@ -417,7 +417,7 @@ namespace RoutechToFiveAxis
                         //Contour/pocket checks
                         if (selectedOperation.OperationTool.Name.IndexOf("V-FOLD") > -1)
                         {
-                            var importedOp = OperationsManager.ImportOperation(new OperationsManager.ImportOptions(fiveAxisToolOpsT, $"{toolList[i]}"));
+                            var importedOp = OperationsManager.ImportOperation(new OperationsManager.ImportOptions(fiveAxisToolOps, $"{toolList[i]}"));
 
                             selectedOperation.OperationTool = importedOp.OperationTool;
                             selectedOperation.Commit();
@@ -426,7 +426,7 @@ namespace RoutechToFiveAxis
                         }
                         else if (selectedOperation.OperationTool.Name.IndexOf("RH") > -1)
                         {
-                            var importedOp = OperationsManager.ImportOperation(new OperationsManager.ImportOptions(fiveAxisToolOpsT, $"{toolList[i]} RH"));
+                            var importedOp = OperationsManager.ImportOperation(new OperationsManager.ImportOptions(fiveAxisToolOps, $"{toolList[i]} RH"));
 
                             selectedOperation.OperationTool = importedOp.OperationTool;
                             selectedOperation.Commit();
@@ -435,7 +435,7 @@ namespace RoutechToFiveAxis
                         }
                         else
                         {
-                            var leftHandImportedOp = OperationsManager.ImportOperation(new OperationsManager.ImportOptions(fiveAxisToolOpsT, $"{toolList[i]} LH"));
+                            var leftHandImportedOp = OperationsManager.ImportOperation(new OperationsManager.ImportOptions(fiveAxisToolOps, $"{toolList[i]} LH"));
 
                             selectedOperation.OperationTool = leftHandImportedOp.OperationTool;
                             selectedOperation.Commit();
@@ -454,7 +454,7 @@ namespace RoutechToFiveAxis
                     {
                         if (selectedOperation.OperationTool.Name.ToUpper().IndexOf("8MM") > -1)
                         {
-                            var importedOp = OperationsManager.ImportOperation(new OperationsManager.ImportOptions(fiveAxisToolOpsT, $"{toolList[i]} ALL"));
+                            var importedOp = OperationsManager.ImportOperation(new OperationsManager.ImportOptions(fiveAxisToolOps, $"{toolList[i]} ALL"));
 
                             selectedOperation.OperationTool = importedOp.OperationTool;
                             selectedOperation.Commit();
@@ -467,11 +467,11 @@ namespace RoutechToFiveAxis
 
                             if (whichMachine == "LARRY" || whichMachine == "MIKE")
                             {
-                                importedOp = OperationsManager.ImportOperation(new OperationsManager.ImportOptions(fiveAxisToolOpsT, $"{toolList[i]} LARRY MIKE"));
+                                importedOp = OperationsManager.ImportOperation(new OperationsManager.ImportOptions(fiveAxisToolOps, $"{toolList[i]} LARRY MIKE"));
                             }
                             else
                             {
-                                importedOp = OperationsManager.ImportOperation(new OperationsManager.ImportOptions(fiveAxisToolOpsT, $"{toolList[i]} GRANT"));
+                                importedOp = OperationsManager.ImportOperation(new OperationsManager.ImportOptions(fiveAxisToolOps, $"{toolList[i]} GRANT"));
                             }
 
                             selectedOperation.OperationTool = importedOp.OperationTool;
@@ -485,11 +485,11 @@ namespace RoutechToFiveAxis
 
                             if (whichMachine == "MIKE" || whichMachine == "GRANT")
                             {
-                                importedOp = OperationsManager.ImportOperation(new OperationsManager.ImportOptions(fiveAxisToolOpsT, $"{toolList[i]} MIKE GRANT"));
+                                importedOp = OperationsManager.ImportOperation(new OperationsManager.ImportOptions(fiveAxisToolOps, $"{toolList[i]} MIKE GRANT"));
                             }
                             else
                             {
-                                importedOp = OperationsManager.ImportOperation(new OperationsManager.ImportOptions(fiveAxisToolOpsT, $"{toolList[i]} LARRY"));
+                                importedOp = OperationsManager.ImportOperation(new OperationsManager.ImportOptions(fiveAxisToolOps, $"{toolList[i]} LARRY"));
                             }
 
                             selectedOperation.OperationTool = importedOp.OperationTool;
@@ -511,14 +511,14 @@ namespace RoutechToFiveAxis
         {
             if (whichMachine == "GRANT")
             {
-                var importedOp = OperationsManager.ImportOperation(new OperationsManager.ImportOptions(fiveAxisToolOpsT, "BLOCK GRANT"));
+                var importedOp = OperationsManager.ImportOperation(new OperationsManager.ImportOptions(fiveAxisToolOps, "BLOCK GRANT"));
                 blockOp.OperationTool = importedOp.OperationTool;
                 blockOp.Commit();
                 importedOp.Delete();
             }
             else if (whichMachine == "MIKE")
             {
-                var importedOp = OperationsManager.ImportOperation(new OperationsManager.ImportOptions(fiveAxisToolOpsT, "BLOCK MIKE"));
+                var importedOp = OperationsManager.ImportOperation(new OperationsManager.ImportOptions(fiveAxisToolOps, "BLOCK MIKE"));
                 blockOp.OperationTool = importedOp.OperationTool;
                 blockOp.Commit();
                 importedOp.Delete();
