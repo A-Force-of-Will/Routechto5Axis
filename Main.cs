@@ -270,61 +270,60 @@ namespace RoutechToFiveAxis
                     .OfType<ContourOperation>()
                     .Where(r => r.CutParams.ContourSubtype == Mastercam.Operations.Types.ContourSubtypeType.Ramp2D)
                     .ToList();
-
+            var pocketContours = SearchManager.GetOperations(OperationType.Pocket)
+                .OfType<PocketOperation>()
+                .ToList();
             var normalContours = SearchManager.GetOperations(OperationType.Contour)
                 .OfType<ContourOperation>()
                 .Where(n => n.CutParams.ContourSubtype == Mastercam.Operations.Types.ContourSubtypeType.Basic)
                 .ToList();
+
+            if (pocketContours.Any())
+            {
+                foreach (Operation op in pocketContours)
+                {
+                    PocketOperation pocketOp = op as PocketOperation;
+
+                    CheckAndChangeTool(contourToolDiameters, pocketOp, whichMachine);
+
+                    pocketOp.Commit();
+                }
+            }
 
             if (normalContours.Any())
             {
                 foreach (Operation op in normalContours)
                 {
                     //Based on the operation type, modify the settings and change the tools
-                    switch (op.Type)
+                    ContourOperation contourOp = op as ContourOperation;
+
+                    contourOp.LeadInOut.Exit.Enabled = true;
+
+                    //Larry's machine is.. special. So turn off plunge/retract and turn on computer comp.
+                    if (whichMachine == "LARRY")
                     {
-                        case OperationType.Contour:
-                            ContourOperation contourOp = op as ContourOperation;
-
-                            contourOp.LeadInOut.Exit.Enabled = true;
-
-                            //Larry's machine is.. special. So turn off plunge/retract and turn on computer comp.
-                            if (whichMachine == "LARRY")
-                            {
-                                //Compensation is usually off for a reason, so if it is, leave it like that
-                                if (contourOp.CutterComp.Type != CutterCompType.CutterCompOff)
-                                {
-                                    contourOp.CutterComp.Type = CutterCompType.CutterCompComputer;
-                                }
-                                contourOp.LeadInOut.Entry.PlungeAfterFirstOrRetractBeforeLastMove = false;
-                            }
-                            else
-                            {
-                                //These settings do the opposite of Larry's for the other operators
-                                contourOp.LeadInOut.Entry.PlungeAfterFirstOrRetractBeforeLastMove = true;
-                                if (contourOp.CutterComp.Type != CutterCompType.CutterCompOff)
-                                {
-                                    contourOp.CutterComp.Type = CutterCompType.CutterCompControl;
-                                }
-                            }
-
-                            contourOp.LeadInOut.Exit = contourOp.LeadInOut.Entry;
-
-                            CheckAndChangeTool(contourToolDiameters, contourOp, whichMachine);
-
-                            contourOp.Commit();
-                            break;
-
-                        case OperationType.Pocket:
-                            PocketOperation pocketOp = op as PocketOperation;
-
-                            CheckAndChangeTool(contourToolDiameters, pocketOp, whichMachine);
-
-                            pocketOp.Commit();
-                            break;
-                        default:
-                            break;
+                        //Compensation is usually off for a reason, so if it is, leave it like that
+                        if (contourOp.CutterComp.Type != CutterCompType.CutterCompOff)
+                        {
+                            contourOp.CutterComp.Type = CutterCompType.CutterCompComputer;
+                        }
+                        contourOp.LeadInOut.Entry.PlungeAfterFirstOrRetractBeforeLastMove = false;
                     }
+                    else
+                    {
+                        //These settings do the opposite of Larry's for the other operators
+                        contourOp.LeadInOut.Entry.PlungeAfterFirstOrRetractBeforeLastMove = true;
+                        if (contourOp.CutterComp.Type != CutterCompType.CutterCompOff)
+                        {
+                            contourOp.CutterComp.Type = CutterCompType.CutterCompControl;
+                        }
+                    }
+
+                    contourOp.LeadInOut.Exit = contourOp.LeadInOut.Entry;
+
+                    CheckAndChangeTool(contourToolDiameters, contourOp, whichMachine);
+
+                    contourOp.Commit();
                 }
             }
 
@@ -408,7 +407,8 @@ namespace RoutechToFiveAxis
         /// <param name="whichMachine">The machine the part is going to. Referenced by the operator's name</param>
         private void CheckAndChangeTool(string[] toolList, Operation selectedOperation, string whichMachine)
         {
-            if (toolList.Equals(contourToolDiameters))
+
+            if (toolList.Equals(contourToolDiameters)) 
             {
                 for (int i = 0; i < toolList.Length; i++)
                 {
@@ -417,27 +417,57 @@ namespace RoutechToFiveAxis
                         //Contour/pocket checks
                         if (selectedOperation.OperationTool.Name.IndexOf("V-FOLD") > -1)
                         {
-                            var importedOp = OperationsManager.ImportOperation(new OperationsManager.ImportOptions(fiveAxisToolOps, $"{toolList[i]}"));
+                            var importSettings = new OperationsManager.ImportOptions
+                            {
+                                FilePath = fiveAxisToolOps,
+                                OperationName = $"{toolList[i]}",
+                                CaseSensitiveNameMatch = false,
+                                DisableDuplicateToolCheck = true
+                            };
+
+                            var importedOp = OperationsManager.ImportOperation(importSettings);
 
                             selectedOperation.OperationTool = importedOp.OperationTool;
+
+                            selectedOperation.OperationTool.Commit();
                             selectedOperation.Commit();
                             importedOp.Delete();
                             return;
                         }
                         else if (selectedOperation.OperationTool.Name.IndexOf("RH") > -1)
                         {
-                            var importedOp = OperationsManager.ImportOperation(new OperationsManager.ImportOptions(fiveAxisToolOps, $"{toolList[i]} RH"));
+                            var importSettings = new OperationsManager.ImportOptions
+                            {
+                                FilePath = fiveAxisToolOps,
+                                OperationName = $"{toolList[i]} RH",
+                                CaseSensitiveNameMatch = false,
+                                DisableDuplicateToolCheck = true
+                            };
+
+                            var importedOp = OperationsManager.ImportOperation(importSettings);
 
                             selectedOperation.OperationTool = importedOp.OperationTool;
+
+                            selectedOperation.OperationTool.Commit();
                             selectedOperation.Commit();
                             importedOp.Delete();
                             return;
                         }
                         else
                         {
-                            var leftHandImportedOp = OperationsManager.ImportOperation(new OperationsManager.ImportOptions(fiveAxisToolOps, $"{toolList[i]} LH"));
+                            var importSettings = new OperationsManager.ImportOptions
+                            {
+                                FilePath = fiveAxisToolOps,
+                                OperationName = $"{toolList[i]} LH",
+                                CaseSensitiveNameMatch = false,
+                                DisableDuplicateToolCheck = true
+                            };
+
+                            var leftHandImportedOp = OperationsManager.ImportOperation(importSettings);
 
                             selectedOperation.OperationTool = leftHandImportedOp.OperationTool;
+
+                            selectedOperation.OperationTool.Commit();
                             selectedOperation.Commit();
 
                             leftHandImportedOp.Delete();
@@ -454,9 +484,19 @@ namespace RoutechToFiveAxis
                     {
                         if (selectedOperation.OperationTool.Name.ToUpper().IndexOf("8MM") > -1)
                         {
-                            var importedOp = OperationsManager.ImportOperation(new OperationsManager.ImportOptions(fiveAxisToolOps, $"{toolList[i]} ALL"));
+                            var importSettings = new OperationsManager.ImportOptions
+                            {
+                                FilePath = fiveAxisToolOps,
+                                OperationName = $"{toolList[i]} ALL",
+                                CaseSensitiveNameMatch = false,
+                                DisableDuplicateToolCheck = true
+                            };
+
+                            var importedOp = OperationsManager.ImportOperation(importSettings);
 
                             selectedOperation.OperationTool = importedOp.OperationTool;
+
+                            selectedOperation.OperationTool.Commit();
                             selectedOperation.Commit();
                             importedOp.Delete();
                             return;
@@ -464,17 +504,27 @@ namespace RoutechToFiveAxis
                         else if (selectedOperation.OperationTool.Name.ToUpper().IndexOf("5MM") > -1)
                         {
                             Operation importedOp;
+                            var importSettings = new OperationsManager.ImportOptions
+                            {
+                                FilePath = fiveAxisToolOps,
+                                CaseSensitiveNameMatch = false,
+                                DisableDuplicateToolCheck = true
+                            };
 
                             if (whichMachine == "LARRY" || whichMachine == "MIKE")
                             {
-                                importedOp = OperationsManager.ImportOperation(new OperationsManager.ImportOptions(fiveAxisToolOps, $"{toolList[i]} LARRY MIKE"));
+                                importSettings.OperationName = $"{toolList[i]} LARRY MIKE";
+                                importedOp = OperationsManager.ImportOperation(importSettings);
                             }
                             else
                             {
-                                importedOp = OperationsManager.ImportOperation(new OperationsManager.ImportOptions(fiveAxisToolOps, $"{toolList[i]} GRANT"));
+                                importSettings.OperationName = $"{toolList[i]} GRANT";
+                                importedOp = OperationsManager.ImportOperation(importSettings);
                             }
 
                             selectedOperation.OperationTool = importedOp.OperationTool;
+
+                            selectedOperation.OperationTool.Commit();
                             selectedOperation.Commit();
                             importedOp.Delete();
                             return;
@@ -482,17 +532,27 @@ namespace RoutechToFiveAxis
                         else if (selectedOperation.OperationTool.Name.ToUpper().IndexOf("3MM") > -1)
                         {
                             Operation importedOp;
+                            var importSettings = new OperationsManager.ImportOptions
+                            {
+                                FilePath = fiveAxisToolOps,
+                                CaseSensitiveNameMatch = false,
+                                DisableDuplicateToolCheck = true
+                            };
 
                             if (whichMachine == "MIKE" || whichMachine == "GRANT")
                             {
-                                importedOp = OperationsManager.ImportOperation(new OperationsManager.ImportOptions(fiveAxisToolOps, $"{toolList[i]} MIKE GRANT"));
+                                importSettings.OperationName = $"{toolList[i]} MIKE GRANT";
+                                importedOp = OperationsManager.ImportOperation(importSettings);
                             }
                             else
                             {
-                                importedOp = OperationsManager.ImportOperation(new OperationsManager.ImportOptions(fiveAxisToolOps, $"{toolList[i]} LARRY"));
+                                importSettings.OperationName = $"{toolList[i]} LARRY";
+                                importedOp = OperationsManager.ImportOperation(importSettings);
                             }
 
                             selectedOperation.OperationTool = importedOp.OperationTool;
+
+                            selectedOperation.OperationTool.Commit();
                             selectedOperation.Commit();
                             importedOp.Delete();
                             return;
@@ -509,17 +569,32 @@ namespace RoutechToFiveAxis
         /// <param name="whichMachine">The machine the part is going to. Referenced by the operator's name</param>
         private void SwitchBlockDrill(BlockDrillOperation blockOp, string whichMachine)
         {
+            var importSettings = new OperationsManager.ImportOptions
+            {
+                FilePath = fiveAxisToolOps,
+                CaseSensitiveNameMatch = false,
+                DisableDuplicateToolCheck = true
+            };
+
             if (whichMachine == "GRANT")
             {
-                var importedOp = OperationsManager.ImportOperation(new OperationsManager.ImportOptions(fiveAxisToolOps, "BLOCK GRANT"));
+                importSettings.OperationName = "BLOCK GRANT";
+                var importedOp = OperationsManager.ImportOperation(importSettings);
+                
                 blockOp.OperationTool = importedOp.OperationTool;
+
+                blockOp.OperationTool.Commit();
                 blockOp.Commit();
                 importedOp.Delete();
             }
             else if (whichMachine == "MIKE")
             {
-                var importedOp = OperationsManager.ImportOperation(new OperationsManager.ImportOptions(fiveAxisToolOps, "BLOCK MIKE"));
+                importSettings.OperationName = "BLOCK MIKE";
+                var importedOp = OperationsManager.ImportOperation(importSettings);
+                
                 blockOp.OperationTool = importedOp.OperationTool;
+
+                blockOp.OperationTool.Commit();
                 blockOp.Commit();
                 importedOp.Delete();
             }
@@ -535,7 +610,7 @@ namespace RoutechToFiveAxis
         /// <returns>True if succeeded. False if not.</returns>
         private bool Cleanup()
         {
-            //Force refresh on operations tree to remove deleted operations, then prompt the user to save
+            //Force refresh on operations tree to remove deleted operations, then prompt the user to save 
             OperationsManager.RefreshOperationsManager(true);
             bool succeeded = true;
             string[] separator = { "ROUTECH", "02ROUTECH" };
