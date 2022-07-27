@@ -21,9 +21,11 @@ using Mastercam.Math;
 using Mastercam.Operations;
 using Mastercam.Support;
 using Mastercam.Support.UI;
+using RoutechToFiveAxis.Models;
 using RoutechToFiveAxis.Properties;
 using RoutechToFiveAxis.Services;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Windows.Forms;
@@ -52,6 +54,12 @@ namespace RoutechToFiveAxis
 
         public readonly string[] contourToolDiameters = { ".125", ".25", ".375", ".5", ".75", "20MM", "V-FOLD" };
         public readonly string[] drillToolDiameters = { "8MM", "5MM", "3MM" };
+
+        public Tool[] usedTools = { };
+        #endregion
+
+        #region Private Variables
+        private List<ToolReference> importedToolList = new List<ToolReference>();
         #endregion
 
         #region Public Override Methods
@@ -398,7 +406,6 @@ namespace RoutechToFiveAxis
             }
         }
 
-
         /// <summary>
         /// Compares the name of the given tool and changes it to the respective tool with the same name in the 5-axis tool library
         /// </summary>
@@ -425,13 +432,8 @@ namespace RoutechToFiveAxis
                                 DisableDuplicateToolCheck = true
                             };
 
-                            var importedOp = OperationsManager.ImportOperation(importSettings);
+                            CheckIfToolExists(importSettings, selectedOperation);
 
-                            selectedOperation.OperationTool = importedOp.OperationTool;
-
-                            selectedOperation.OperationTool.Commit();
-                            selectedOperation.Commit();
-                            importedOp.Delete();
                             return;
                         }
                         else if (selectedOperation.OperationTool.Name.IndexOf("RH") > -1)
@@ -444,13 +446,8 @@ namespace RoutechToFiveAxis
                                 DisableDuplicateToolCheck = true
                             };
 
-                            var importedOp = OperationsManager.ImportOperation(importSettings);
-
-                            selectedOperation.OperationTool = importedOp.OperationTool;
-
-                            selectedOperation.OperationTool.Commit();
-                            selectedOperation.Commit();
-                            importedOp.Delete();
+                            CheckIfToolExists(importSettings, selectedOperation);
+                            
                             return;
                         }
                         else
@@ -463,14 +460,9 @@ namespace RoutechToFiveAxis
                                 DisableDuplicateToolCheck = true
                             };
 
-                            var leftHandImportedOp = OperationsManager.ImportOperation(importSettings);
-
-                            selectedOperation.OperationTool = leftHandImportedOp.OperationTool;
-
-                            selectedOperation.OperationTool.Commit();
-                            selectedOperation.Commit();
-
-                            leftHandImportedOp.Delete();
+                            CheckIfToolExists(importSettings, selectedOperation);
+                            
+                            return;
                         }
                     }
                 }
@@ -559,6 +551,41 @@ namespace RoutechToFiveAxis
                         }
                     }
                 }
+            }
+        }
+
+        /// <summary>
+        /// Performs a check inside the imported tool list to see if the program can use an existing tool that has already been imported. 
+        /// It will automatically add and use the tool if it is not in the list yet.
+        /// </summary>
+        /// <param name="importSettings">The respective import settings for the specified operation to use.</param>
+        /// <param name="selectedOperation">The operation that is having the tool checked.</param>
+        private void CheckIfToolExists(OperationsManager.ImportOptions importSettings, Operation selectedOperation)
+        {
+            //check if the tool is in the list
+            bool toolExistsInList = false;
+            for (int i = 0; i < importedToolList.Count(); i++)
+            {
+                if (importedToolList[i].Name == $"{importSettings.OperationName}")
+                {
+                    toolExistsInList = true;
+
+                    selectedOperation.OperationTool = importedToolList[i].Tool;
+                    selectedOperation.OperationTool.Commit();
+                    selectedOperation.Commit();
+                }
+            }
+            //if the tool does not exist, then import and add it to the list.
+            if (!toolExistsInList)
+            {
+                var importedOp = OperationsManager.ImportOperation(importSettings);
+                selectedOperation.OperationTool = importedOp.OperationTool;
+                selectedOperation.OperationTool.Commit();
+                selectedOperation.Commit();
+                importedToolList.Add(new ToolReference($"{importSettings.OperationName}", selectedOperation.OperationTool));
+
+                importedOp.Delete();
+                return;
             }
         }
 
